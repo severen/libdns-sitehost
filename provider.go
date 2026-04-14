@@ -316,6 +316,34 @@ func (p *Provider) updateRecord(ctx context.Context, domain string, rec libdns.R
 	return rec, nil
 }
 
+// ListZones returns all DNS zones available on the account.
+func (p *Provider) ListZones(ctx context.Context) ([]libdns.Zone, error) {
+	client := p.getClient()
+
+	var zones []libdns.Zone
+	page := 1
+
+	for {
+		response, err := client.ListZones(ctx, &dns.ListZoneOptions{
+			PageNumber: page,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, z := range response.Return.Data {
+			zones = append(zones, libdns.Zone{Name: z.Name + "."})
+		}
+
+		if page >= response.Return.TotalPages {
+			break
+		}
+		page++
+	}
+
+	return zones, nil
+}
+
 // Verify that the `Provider` struct actually implements the `libdns`
 // interfaces.
 var (
@@ -323,4 +351,5 @@ var (
 	_ libdns.RecordAppender = (*Provider)(nil)
 	_ libdns.RecordSetter   = (*Provider)(nil)
 	_ libdns.RecordDeleter  = (*Provider)(nil)
+	_ libdns.ZoneLister     = (*Provider)(nil)
 )
